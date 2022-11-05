@@ -257,9 +257,6 @@ def robot_to_world(r_values,alpha_values,endpoints_x,endpoints_y):
         x,y = endpoints_x[index],endpoints_y[index]
         x_world,y_world = (x * dx - y * dy + ekf.state[0], x * dy + y * dx + ekf.state[1]) 
         endpoints_x_world.append(x_world)
-        enpoints_y_world.append(y_world)
-    
-    return r,alpha,endpoints_x,endpoints_y
     
 
 #cartesian to polar conversion given a set of coordiantes 
@@ -298,7 +295,7 @@ def map_convert_to_polar(map):
 
 def pred_update_callback(data):
     #function to perform the prediction update step by using the messge from odom node
-
+    rospy.loginfo('pred_update_callback is called')
     #acessing the global ekf class object 
     global ekf
 
@@ -308,15 +305,15 @@ def pred_update_callback(data):
     #defining the new 3x3 zeros matrix and updating it wiht relevant values from the 1x36 covariance array from odometry_node
     pred_covariance = np.zeros((3,3))
 
-    pred_covariance[0,0] = PoseWithCovarianceStamped.pose.covariance[0]
-    pred_covariance[1,1] = PoseWithCovarianceStamped.pose.covariance[7]
-    pred_covariance[2,2] = PoseWithCovarianceStamped.pose.covariance[35]
-    pred_covariance[1,2] = PoseWithCovarianceStamped.pose.covariance[10]
-    pred_covariance[2,1] = PoseWithCovarianceStamped.pose.covariance[10]
-    pred_covariance[0,1] = PoseWithCovarianceStamped.pose.covariance[2]
-    pred_covariance[1,0] = PoseWithCovarianceStamped.pose.covariance[2]
-    pred_covariance[2,0] = PoseWithCovarianceStamped.pose.covariance[5]
-    pred_covariance[0,2] = PoseWithCovarianceStamped.pose.covariance[5]
+    pred_covariance[0,0] = data.pose.covariance[0]
+    pred_covariance[1,1] = data.pose.covariance[7]
+    pred_covariance[2,2] = data.pose.covariance[35]
+    pred_covariance[1,2] = data.pose.covariance[10]
+    pred_covariance[2,1] = data.pose.covariance[10]
+    pred_covariance[0,1] = data.pose.covariance[2]
+    pred_covariance[1,0] = data.pose.covariance[2]
+    pred_covariance[2,0] = data.pose.covariance[5]
+    pred_covariance[0,2] = data.pose.covariance[5]
 
     #updating the covarince assicated witht the ekf_object
     ekf.covariance = np.copy(pred_covariance)
@@ -348,15 +345,15 @@ def correction_from_april_tag_callback(data):
 
     measurement_covariance = np.zeros((3,3))
 
-    measurement_covariance[0,0] = PoseWithCovarianceStamped.pose.covariance[0]
-    measurement_covariance[1,1] = PoseWithCovarianceStamped.pose.covariance[7]
-    measurement_covariance[2,2] = PoseWithCovarianceStamped.pose.covariance[35]
-    measurement_covariance[1,2] = PoseWithCovarianceStamped.pose.covariance[10]
-    measurement_covariance[2,1] = PoseWithCovarianceStamped.pose.covariance[10]
-    # measurement_covariance[0,1] = PoseWithCovarianceStamped.pose.covariance[0]
-    # measurement_covariance[1,0] = PoseWithCovarianceStamped.pose.covariance[0]
-    measurement_covariance[2,0] = PoseWithCovarianceStamped.pose.covariance[5]
-    measurement_covariance[0,2] = PoseWithCovarianceStamped.pose.covariance[5]
+    measurement_covariance[0,0] = data.pose.covariance[0]
+    measurement_covariance[1,1] = data.pose.covariance[7]
+    measurement_covariance[2,2] = data.pose.covariance[35]
+    measurement_covariance[1,2] = data.pose.covariance[10]
+    measurement_covariance[2,1] = data.pose.covariance[10]
+    # measurement_covariance[0,1] = data.pose.covariance[0]
+    # measurement_covariance[1,0] = data.pose.covariance[0]
+    measurement_covariance[2,0] = data.pose.covariance[5]
+    measurement_covariance[0,2] = data.pose.covariance[5]
 
     #applying the correction for state using measured values from april_tag
     ekf.april_tag_correction(measurement_pose,measurement_covariance)
@@ -424,15 +421,15 @@ def main():
 
         #preparing the message for publishing and publishing the message updating the nescessary fields
         ekf_message = PoseWithCovarianceStamped()
-        ekf_message.PoseWithCovarianceStamped.pose.position.x = X
-        ekf_message.PoseWithCovarianceStamped.pose.position.y = Y
-        ekf_message.PoseWithCovarianceStamped.pose.position.z = 0
-        ekf_message.PoseWithCovarianceStamped.pose.orientation.x = ekf_quat[0]
-        ekf_message.PoseWithCovarianceStamped.pose.orientation.y = ekf_quat[1]
-        ekf_message.PoseWithCovarianceStamped.pose.orientation.z = ekf_quat[2]
-        ekf_message.PoseWithCovarianceStamped.pose.orientation.w = ekf_quat[3]
+        ekf_message.pose.pose.position.x = X
+        ekf_message.pose.pose.position.y = Y
+        ekf_message.pose.pose.position.z = 0
+        ekf_message.pose.pose.orientation.x = ekf_quat[0]
+        ekf_message.pose.pose.orientation.y = ekf_quat[1]
+        ekf_message.pose.pose.orientation.z = ekf_quat[2]
+        ekf_message.pose.pose.orientation.w = ekf_quat[3]
 
-        ekf_message.PoseWithCovarianceStamped.pose.covariance = [covariance[0,0],covariance[0,1],0,0,0,covariance[0,2],\
+        ekf_message.pose.covariance = [covariance[0,0],covariance[0,1],0,0,0,covariance[0,2],\
                                                             covariance[1,0],covariance[1,1],0,0,0,covariance[1,2],\
                                                             0,0,0,0,0,0,\
                                                             0,0,0,0,0,0,\
@@ -449,6 +446,7 @@ def main():
 
         ##stopiing the loop to maintian rate 
         rate.sleep()
+    rospy.spin()
         
 if __name__ == '__main__':
    

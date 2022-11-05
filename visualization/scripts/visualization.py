@@ -22,9 +22,9 @@ fig , ax1 = plt.subplots()
 fig2, ax2 = plt.subplots()
 
 #finding full file path 
-file_path = os.path.join(cwd_path, 'map_final.png')
+file_path = os.path.join(cwd_path, 'mirror.png')
 img = plt.imread(file_path) #reading the background image 
-ax1.imshow(img, extent=[0, 24000, 0, 16000]) #plotting it 
+ax1.imshow(img, extent=[0, 29000, 0, 16000]) #plotting it 
 ax1.set(xlabel='X(m)', ylabel='Y(m)') #setting X and Y labels 
 
 #plot robot
@@ -42,8 +42,8 @@ def pose_callback(data):
     global ax1
 
     #finding th erequired points to be plotted 
-    y_start = data.linear.x + 200
-    x_start = data.linear.y + 9280
+    y_start = data.linear.x + 1500
+    x_start = data.linear.y + 11280
 
     #filtering out unnesscary high values 
     if x_start<1e5 and y_start<1e5:

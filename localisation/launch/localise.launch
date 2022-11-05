@@ -1,7 +1,7 @@
 <launch>
 
  <node pkg="localisation" type="odometry_pose_estimation.py" name="odom_node"/>
-
+ <node pkg="localisation" type="ekf_node.py" name="ekf_node"/>
  <!--node pkg="localisation" type="pose_estimation.py" name="pose_update"/-->
  <!--node pkg="localisation" type="line_extract_node.py" name="feature_from_lidar"/-->
  

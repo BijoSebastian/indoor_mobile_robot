@@ -219,15 +219,15 @@ def callback_ekf_position_update(data):
     #defining the new 3x3 zeros matrix and updating it wiht rlevant values from the 1x36 covariance array from ekf_node
     covariance_from_ekf = np.zeros((3,3))
 
-    covariance_from_ekf[0,0] = PoseWithCovarianceStamped.pose.covariance[0]
-    covariance_from_ekf[1,1] = PoseWithCovarianceStamped.pose.covariance[7]
-    covariance_from_ekf[2,2] = PoseWithCovarianceStamped.pose.covariance[35]
-    covariance_from_ekf[1,2] = PoseWithCovarianceStamped.pose.covariance[10]
-    covariance_from_ekf[2,1] = PoseWithCovarianceStamped.pose.covariance[10]
-    covariance_from_ekf[0,1] = PoseWithCovarianceStamped.pose.covariance[2]
-    covariance_from_ekf[1,0] = PoseWithCovarianceStamped.pose.covariance[2]
-    covariance_from_ekf[2,0] = PoseWithCovarianceStamped.pose.covariance[5]
-    covariance_from_ekf[0,2] = PoseWithCovarianceStamped.pose.covariance[5]
+    covariance_from_ekf[0,0] = data.pose.covariance[0]
+    covariance_from_ekf[1,1] = data.pose.covariance[7]
+    covariance_from_ekf[2,2] = data.pose.covariance[35]
+    covariance_from_ekf[1,2] = data.pose.covariance[10]
+    covariance_from_ekf[2,1] = data.pose.covariance[10]
+    covariance_from_ekf[0,1] = data.pose.covariance[2]
+    covariance_from_ekf[1,0] = data.pose.covariance[2]
+    covariance_from_ekf[2,0] = data.pose.covariance[5]
+    covariance_from_ekf[0,2] = data.pose.covariance[5]
 
     #updating the odometry covariance 
     covariance = np.copy(covariance_from_ekf)
@@ -248,7 +248,7 @@ def main():
     #lidar_broadcaster = tf.TransformBroadcaster() #tf broadcasters for lidar
     
     #intialising the odom_node
-    rospy.init_node('odom_node')
+    rospy.init_node('odom_node',anonymous=True)
 
     #creating a service called reset_odometry to seta pose to odometry intially or at any other time
     service_reset_odometry = rospy.Service('reset_odometry', odom_reset, set_odometry)
@@ -317,15 +317,15 @@ def main():
 
         #creating a instance of the custom odometry message 
         odom = PoseWithCovarianceStamped()
-        odom.PoseWithCovarianceStamped.pose.pose.position.x = X
-        odom.PoseWithCovarianceStamped.pose.pose.position.y = Y
-        odom.PoseWithCovarianceStamped.pose.pose.position.z = 0
-        odom.PoseWithCovarianceStamped.pose.pose.orientation.x = odom_quat[0]
-        odom.PoseWithCovarianceStamped.pose.pose.orientation.y = odom_quat[1]
-        odom.PoseWithCovarianceStamped.pose.pose.orientation.z = odom_quat[2]
-        odom.PoseWithCovarianceStamped.pose.pose.orientation.w = odom_quat[3]
+        odom.pose.pose.position.x = X
+        odom.pose.pose.position.y = Y
+        odom.pose.pose.position.z = 0
+        odom.pose.pose.orientation.x = odom_quat[0]
+        odom.pose.pose.orientation.y = odom_quat[1]
+        odom.pose.pose.orientation.z = odom_quat[2]
+        odom.pose.pose.orientation.w = odom_quat[3]
 
-        odom.PoseWithCovarianceStamped.pose.covariance = [covariance[0,0],covariance[0,1],0,0,0,covariance[0,2],\
+        odom.pose.covariance = [covariance[0,0],covariance[0,1],0,0,0,covariance[0,2],\
                                                             covariance[1,0],covariance[1,1],0,0,0,covariance[1,2],\
                                                             0,0,0,0,0,0,\
                                                             0,0,0,0,0,0,\
