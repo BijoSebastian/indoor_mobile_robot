@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #importing the nescessary libraries 
 import rospy #python library for ROS 
 import tf #importing tf transforms for doing various transformations
@@ -179,22 +181,22 @@ class ExtendedKalmanFilter():
         yaw_imu = yaw_imu*np.pi/180
 
         #stroing the current yaw and varaince 
-        current_yaw = self.state[3]
-        current_variance = self.covariance[3][3]
+        current_yaw = self.state[2]
+        current_variance = self.covariance[2][2]
 
         #appyling kalman filter based correction on the yaw angle mean and variance
         corrected_yaw = current_yaw + (current_variance/(current_variance + variance_imu))*(yaw_imu-current_yaw)
         corrected_variance = current_variance - (current_variance/(current_variance + variance_imu))*(current_variance)
 
         #updating the state and variance in the ekf class 
-        self.state[3]=corrected_yaw
-        self.covariance[3][3]= corrected_variance
+        self.state[2]=corrected_yaw
+        self.covariance[2][2]= corrected_variance
 
     #function to apply the kalman filter correction using the values measure from april_tag
     def april_tag_correction(self,measurement_pose,measurement_covariance):
 
         #cacualting the innovation to update the innovationand innovation covariance here jacobain is identity so the equations simplify a lot 
-        innovation = measurement_pose - self.pose
+        innovation = measurement_pose - self.state
         innovation_covariance = self.covariance+ measurement_covariance
             
         #calcualtin gthe Kalman Gain
@@ -391,14 +393,14 @@ def main():
 
     #getting time for using it in tf transforms
     current_time = rospy.Time.now()
-    last_time = rospy.Time.now()
+    # last_time = rospy.Time.now()
 
     #subscribing the required topics
     rospy.Subscriber('/odom', PoseWithCovarianceStamped, pred_update_callback) # getting the odometry prediction from odom_node 
     #commented out as it is not being tested now 
     #rospy.Subscriber('feature_from_lidar', features, correction_from_lidar_callback)
     rospy.Subscriber('/pozyx_position',Twist,correction_from_imu_callback) # getting the orientation asscoiated with the imu of pozyx 
-    rospy.Subscriber('/robot_pose',PoseWithCovarianceStamped,correction_from_april_tag_callback) # getting the predicted position and covariance from apriltag based detection module
+    rospy.Subscriber('/aprtag',PoseWithCovarianceStamped,correction_from_april_tag_callback) # getting the predicted position and covariance from apriltag based detection module
 
     while not rospy.is_shutdown():
 
@@ -410,6 +412,8 @@ def main():
         covariances.append(ekf.covariance)
 
         #extracting pose and covariances to separate variable for easenes of sending
+        if len(ekf.state) == 0:
+            continue
         X=ekf.state[0]
         Y=ekf.state[1]
         theta=ekf.state[2]

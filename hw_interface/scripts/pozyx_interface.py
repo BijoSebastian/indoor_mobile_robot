@@ -91,14 +91,13 @@ def main():
     pos.linear.x = position[0]
     pos.linear.y = position[1]
     pos.angular.z = position[2]
-    if pos.linear.x < 1e5 or pos.linear.y < 1e5:
+    #if pos.linear.x < 1e5 or pos.linear.y < 1e5:
     #pos.angular.z = position[3]
     #pos.angular.y = position[4]
     #pos.angular.x = position[5]
     if pos.linear.x < 1e5 or pos.linear.y < 1e5:
-    	pub_position.publish(pos)
-
-    rate.sleep()
+      pub_position.publish(pos)
+      rate.sleep()
 
   return
 

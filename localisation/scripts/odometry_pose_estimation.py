@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+
 #importing the nescessary libraries 
 import rospy #python library for ROS 
 from std_msgs.msg import Int64 #importing Int64
@@ -25,7 +28,7 @@ class ticks:
 Tick=ticks() #class for stroing the ticks values
 
 
-pose=(0,0,0) #intial pose as a global variable
+pose=[0,0,0] #intial pose as a global variable
 covariance = np.diag([100.0**2, 100.0**2, (10.0 / 180.0 * pi) ** 2]) #intialising the covariance to large value
 
 #function to get the jacobian associated with the current state due to previous state 
@@ -140,7 +143,7 @@ def pose_update(tick_difference,ticks_to_meter,width_robo,scanner_displacement):
 		y = pose[1]+tick_difference[1]*ticks_to_meter*sin(theta) #updating y 
 		
 		#returning the pose
-		return (x,y,theta)
+		return [x,y,theta]
 
 
 	#second case in case of a curve
@@ -167,7 +170,7 @@ def pose_update(tick_difference,ticks_to_meter,width_robo,scanner_displacement):
 		y = centery-(R+width_robo/2)*cos(theta)+scanner_displacement*cos(theta) # cacualting the new y
 		
 		
-		return (x,y,theta) # returning the pose 
+		return [x,y,theta] # returning the pose 
 
 #call back function to update left tick    
 def callback_left(msg):
@@ -186,7 +189,7 @@ def set_odometry(req):
 
     global pose #accessing the global variable pose 
 
-    pose=(req.x,req.y,req.theta) #getting the required variable x , y, theta .
+    pose=[req.x,req.y,req.theta] #getting the required variable x , y, theta .
 
     return odom_resetResponse(True) #setting the response variable in the srv file to be true 
 
@@ -195,7 +198,6 @@ def callback_ekf_position_update(data):
     #acessing the global pose and covariance 
     global pose
     global covariance
-
     #updating the first two elements of the pose as the x and y ouputted by ekf_node
     pose[0]=data.pose.pose.position.x 
     pose[1]=data.pose.pose.position.y
