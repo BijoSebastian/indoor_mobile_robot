@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #importing the necessary Libraries required 
 import matplotlib.pyplot as plt #for plotting 
 import numpy as np # the numerical python library
@@ -16,8 +16,8 @@ plt.ion()# seeting up interactive mode
 robot_position_x=[]
 robot_position_y=[]
 robot_orientation =[]
-anchor_pos = [(1200,6600),(80,330),(2050,2250),(50,0)]
-goal_pos = 
+anchor_pos = [(1200,6600),(80,3300),(2050,2250),(50,0)]
+goal_pos = [1100,3300]
 
 #defining two axes and figures for plotting 
 fig , ax1 = plt.subplots()
@@ -27,7 +27,7 @@ fig , ax1 = plt.subplots()
 #file_path = os.path.join(cwd_path, 'mirror.png')
 #img = plt.imread(file_path) #reading the background image 
 #ax1.imshow(img, extent=[0, 29000, 0, 16000]) #plotting it 
-ax1.set(xlabel='X(m)', ylabel='Y(m)') #setting X and Y labels 
+ax1.set(xlabel='X(mm)', ylabel='Y(mm)') #setting X and Y labels 
 
 #plot robot
 robot_1 = ax1.scatter(0.0, 0.0, alpha=1.0, s=50, color='green') # plotting the robot as a point 
@@ -37,8 +37,8 @@ heading_1, = ax1.plot(X_cor, Y_cor,'b-') # plotting the intial heading from star
 
 #plot anchors
 for i in range(len(anchor_pos)):
-    ax1.scatter(anchor_pos[i][0],anchor_pos[i][1],color = 'white') 
-
+    ax1.scatter(anchor_pos[i][0],anchor_pos[i][1],color = 'black') 
+ax1.scatter(goal_pos[0],goal_pos[1],color = "yellow")
 def pose_callback(data):
 
     #acessing the required global variables 
@@ -47,11 +47,16 @@ def pose_callback(data):
     global ax1
 
     #finding th erequired points to be plotted 
-    y_start = data.linear.x + 1500
-    x_start = data.linear.y + 11280
+    y_start = data.linear.y
+    x_start = data.linear.x
 
     #filtering out unnesscary high values 
     if x_start<1e5 and y_start<1e5:
+
+        if(len(robot_position_x)) > 100:
+            robot_position_x.clear()
+        if(len(robot_position_y)) > 100:
+            robot_position_y.clear()
 
         #appending robots x and y position to list for plotting 
         robot_position_x.append(x_start)
@@ -61,7 +66,7 @@ def pose_callback(data):
         robot_1.set_offsets([x_start, y_start ])  
 
         #converting orientation to radians 
-        robot_orientation_radians = (data.angular.z-90)*(np.pi/180)
+        robot_orientation_radians = (360 - data.angular.z)*(np.pi/180)
 
         #endpoint for the current heading 
         x_end = 1000*np.cos(robot_orientation_radians)+x_start
