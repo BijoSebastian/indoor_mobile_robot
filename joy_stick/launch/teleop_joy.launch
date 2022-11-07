@@ -23,6 +23,6 @@
   <param name="wheel_radius" value="37" type="int"/> <!-- mm -->
   <param name="distance_threshold" value="250" type="double"/> <!-- mm -->
   <param name="dist_error_threshold" value="50000" type="int"/> <!-- mm -->
-  <param name="angular_threshold" value="0.2" type="double"/> <!-- radian -->
-  <param name="ep_angle_error_threshold" value="0.3" type="double"/> <!-- radian -->
+  <param name="angular_threshold" value="0.1" type="double"/> <!-- radian -->
+  <param name="ep_angle_error_threshold" value="0.1" type="double"/> <!-- radian -->
 </launch>
