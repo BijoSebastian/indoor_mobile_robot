@@ -41,12 +41,9 @@ def main():
     global RPose,GPose,vControl,wControl
     
     rospy.init_node('go_to_goal_node')
-<<<<<<< HEAD
-    rate = rospy.Rate(0.25)
-=======
+
     rate = rospy.Rate(10)
->>>>>>> 766c9dec0efde1e2fbd3786282d4cf486c19efbf
-    
+ 
     control_msg = Twist()
 
     #Takes the user input
@@ -81,15 +78,14 @@ def main():
 	 
         robot_x = RPose.x
         robot_y = RPose.y
-        robot_theta = ((RPose.theta-45)*math.pi/180)%(2*math.pi)
+        robot_theta = ((360 - RPose.theta)*math.pi/180)%(2*math.pi)
         
 
         #Calculating the error in the angle of heading
         theta_error = (math.atan2((goal_y-robot_y),(goal_x-robot_x))+2*math.pi)%(2*math.pi) - robot_theta
         theta_error = (theta_error + math.pi)%(2*math.pi) - math.pi
-        print(robot_x,robot_y,goal_x,goal_y)
-        print(robot_theta*180/math.pi)
-        print(theta_error*180/math.pi)
+        print('robot theta',robot_theta*180/math.pi)
+        print('theta error',theta_error*180/math.pi)
 	
         #The distance error
         distance_error = get_distance(robot_x,robot_y,goal_x,goal_y)
@@ -99,8 +95,6 @@ def main():
         if(abs(prev_distance_error-distance_error) > dist_error_threshold):
             distance_error = prev_distance_error       
         
-        if(abs(theta_error) > 1):
-            theta_error = prev_theta_error 
             
         #Aligning the angle of travel and varying the angular velocity
         if(abs(theta_error) >= angular_threshold and distance_error >= distance_threshold):
@@ -109,18 +103,19 @@ def main():
             control_msg.angular.z = 0  
 
         #Varying the linear velocity
-        """if(distance_error >= distance_threshold):
-            control_msg.linear.x = 0.3
+        if(distance_error >= distance_threshold):
+            control_msg.linear.x = 0.1
             
         else:
             control_msg.linear.x = 0
-            #Turning the robot to align in the desired orientation    
+            #Turning the robot to align in the desired orientation 
+            """   
             if(abs(goal_theta-robot_theta) >= ep_angle_error_threshold):
                 control_msg.angular.z = 0.75
             else:
                 control_msg.angular.z = 0
                 return  
-	"""
+	        """
         control_pub.publish(control_msg)
         rate.sleep()
         
