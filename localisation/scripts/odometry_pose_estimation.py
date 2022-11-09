@@ -205,16 +205,17 @@ def callback_ekf_position_update(data):
     #conversion of quaternion to euler
 
     #extracting the quaternion
-    quaternion = (
+    quaternion = [
     data.pose.pose.orientation.x,
     data.pose.pose.orientation.y,
     data.pose.pose.orientation.z,
-    data.pose.pose.orientation.w)
+    data.pose.pose.orientation.w]
 
     #getting euler angles from quaternion
-    (roll, pitch, yaw) = euler_from_quaternion(quaternion)
+    (_, _, yaw) = euler_from_quaternion(quaternion)
 
-    #updatin the orientation
+    #updating the orientation
+    #yaw=(yaw + pi)%2*pi-pi
     pose[2]=yaw
 
 
@@ -313,7 +314,7 @@ def main():
         
         
         #sending each transform for lidar and  odometry 
-        odom_broadcaster.sendTransform((X, Y, 0),odom_quat,current_time,"/odometry_base_link","/odom")  
+        odom_broadcaster.sendTransform((X*1e-3, Y*1e-3, 0),odom_quat,current_time,"/odometry_base_link","/world")  
         #lidar_broadcaster.sendTransform((X, Y, 0),odom_quat,current_time,"/laser","/odom") 
         
 

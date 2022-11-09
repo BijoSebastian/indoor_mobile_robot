@@ -12,86 +12,88 @@ from geometry_msgs.msg import TransformStamped
 from apriltag_ros.msg import AprilTagDetectionArray
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
-robotpose = PoseWithCovarianceStamped()
+class FindRobot():
+	def __init__(self):
+		self.robotpose = None
+		self.position_camera = None
+		self.quaternion_camera = None
+		self.published = False
 
-def get_tag_tf(msg):
-	current = rospy.Time.now()
-	T = {}
-	listener = tf.TransformListener()
-	for det in msg.detections:
-		tag_str = 'tag_'+str(det.id[0])
-		listener.waitForTransform(tag_str,'camera',rospy.Time(), rospy.Duration(1.0))
-		(trans,rot) = listener.lookupTransform(tag_str,'camera',rospy.Time())
-		T[det.id[0]] = listener.fromTranslationRotation(trans, rot)
-    			
-	return T
+	@staticmethod	
+	def get_tag_tf(msg):
+		current = rospy.Time.now()
+		T = {}
+		listener = tf.TransformListener()
+		for det in msg.detections:
+			tag_str = 'tag_'+str(det.id[0])
+			listener.waitForTransform(tag_str,'camera',rospy.Time(), rospy.Duration(1.0))
+			(trans,rot) = listener.lookupTransform(tag_str,'camera',rospy.Time())
+			T[det.id[0]] = listener.fromTranslationRotation(trans, rot)
+					
+		return T
 	
-def get_tag_world():
-	tags_dict = {}
-	rospack = rospkg.RosPack()
-	base_path = rospack.get_path('camera_localise')
-	with open(base_path+"/config/tag_pos.yaml", 'r') as stream:
-		tags = yaml.safe_load(stream)
-		tags = tags['standalone_tags']
-		for i in tags:
-			tags_dict[i['id']] = tf.transformations.compose_matrix(angles=(i['ex'],i['ey'],i['ez']),translate=(i['x'],i['y'],i['z']))
-		
-	return tags_dict
+	@staticmethod
+	def get_tag_world():
+		tags_dict = {}
+		rospack = rospkg.RosPack()
+		base_path = rospack.get_path('camera_localise')
+		with open(base_path+"/config/tag_pos.yaml", 'r') as stream:
+			tags = yaml.safe_load(stream)
+			tags = tags['standalone_tags']
+			for i in tags:
+				tags_dict[i['id']] = tf.transformations.compose_matrix(angles=(i['ex'],i['ey'],i['ez']),translate=(i['x'],i['y'],i['z']))
+			
+		return tags_dict
 	
-def get_camera_tf(tags_dict,T_dict):
-	tlist = []
-	for key in T_dict.keys():
-		tlist.append(np.matmul(tags_dict[key],T_dict[key]))
-	T = sum(tlist)/len(tlist)
-	quat = tf.transformations.quaternion_from_matrix(T)
-	pos = tuple(T[0:3,3])
-	return pos,quat
+	@staticmethod
+	def get_camera_tf(tags_dict,T_dict):
+		tlist = []
+		for key in T_dict.keys():
+			tlist.append(np.matmul(tags_dict[key],T_dict[key]))
+		T = sum(tlist)/len(tlist)
+		quat = tf.transformations.quaternion_from_matrix(T)
+		pos = tuple(T[0:3,3])
+		return pos,quat
 	
-def send_camera_pose(msg):
 
-	global robotpose
-	# tros = tf.TransformerROS(cache_time=rospy.Duration(200.0))
-	tags = get_tag_world()
-	br = tf.TransformBroadcaster()
-	q_rc = tf.transformations.quaternion_from_euler(0,-1.5708,-1.5708)
-	pub = rospy.Publisher('/aprtag',PoseWithCovarianceStamped,queue_size=1)
-	
-	R = rospy.Rate(10)
-	while not rospy.is_shutdown():
+	def send_camera_pose(self,msg):
+		tags = self.get_tag_world()
+		q_rc = tf.transformations.quaternion_from_euler(0,-1.5708,-1.5708)
+
 		try:
-			T = get_tag_tf(msg)
+			T = self.get_tag_tf(msg)
+			self.published = True
+			self.robotpose = PoseWithCovarianceStamped()
+			self.position_camera, self.quaternion_camera = self.get_camera_tf(tags,T)
+			q_wr = tf.transformations.quaternion_multiply(self.quaternion_camera,q_rc)
+			self.robotpose.pose.pose.position.x = self.position_camera[0]*1e3
+			self.robotpose.pose.pose.position.y = self.position_camera[1]*1e3
+			self.robotpose.pose.pose.position.z = self.position_camera[2]*1e3
+			self.robotpose.pose.pose.orientation.x = q_wr[0]
+			self.robotpose.pose.pose.orientation.y = q_wr[1]
+			self.robotpose.pose.pose.orientation.z = q_wr[2]
+			self.robotpose.pose.pose.orientation.w = q_wr[3]
+			self.robotpose.pose.covariance = [500,0,0,0,0,50,\
+																	0,50,0,0,0,10,\
+																	0,0,0,0,0,0,\
+																	0,0,0,0,0,0,\
+																	0,0,0,0,0,0,\
+																	50,10,0,0,0,500]		
 		except:
-			continue
-		if len(T) == 0:
-			continue
-		p_cw,q_cw = get_camera_tf(tags,T)
-		q_wr = tf.transformations.quaternion_multiply(q_cw,q_rc)
-		robotpose.pose.pose.position.x = p_cw[0]
-		robotpose.pose.pose.position.y = p_cw[1]
-		robotpose.pose.pose.position.z = p_cw[2]
-		robotpose.pose.pose.orientation.x = q_wr[0]
-		robotpose.pose.pose.orientation.y = q_wr[1]
-		robotpose.pose.pose.orientation.z = q_wr[2]
-		robotpose.pose.pose.orientation.w = q_wr[3]
-		robotpose.pose.covariance = [500,0,0,0,0,50,\
-																0,50,0,0,0,10,\
-																0,0,0,0,0,0,\
-																0,0,0,0,0,0,\
-																0,0,0,0,0,0,\
-																50,10,0,0,0,500]
-		pub.publish(robotpose)										
-		br.sendTransform(p_cw,q_cw,rospy.Time.now(),"camera","world")
-		# cr.sendTransform((0,0,0),q_cr,rospy.Time.now(),"robot","camera")
-		R.sleep()
+			self.published = False
 	
 	
 if __name__ == '__main__':
 	rospy.init_node('camera_localise_node')
-	rospy.Subscriber("/tag_detections",AprilTagDetectionArray,send_camera_pose)
+	detection = FindRobot()
+	rospy.Subscriber("/tag_detections",AprilTagDetectionArray,detection.send_camera_pose)
 	pub = rospy.Publisher('/aprtag',PoseWithCovarianceStamped,queue_size=1)
+	br = tf.TransformBroadcaster()
 	R = rospy.Rate(10)
-	# while not rospy.is_shutdown():
-	# 	pub.publish(robotpose)
-	# 	R.sleep()
-	rospy.spin()
+	while not rospy.is_shutdown():
+		if detection.published:
+			br.sendTransform(detection.position_camera,detection.quaternion_camera,rospy.Time.now(),"camera","world")
+			pub.publish(detection.robotpose)
+		R.sleep()
+	# rospy.spin()
 	

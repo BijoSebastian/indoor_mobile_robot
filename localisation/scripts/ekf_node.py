@@ -6,6 +6,7 @@ import tf #importing tf transforms for doing various transformations
 from geometry_msgs.msg import PoseWithCovarianceStamped #importing message for publish
 from geometry_msgs.msg import  Twist #importing message for publish
 import numpy as np #importing thr numericla python library
+from tf.transformations import euler_from_quaternion
 
 
 #class to keep track of the states and covariances
@@ -179,6 +180,7 @@ class ExtendedKalmanFilter():
 
         #converting yaw angle to radians
         yaw_imu = yaw_imu*np.pi/180
+        #yaw_imu=(yaw_imu + np.pi)%2*np.pi-np.pi
 
         #stroing the current yaw and varaince 
         current_yaw = self.state[2]
@@ -198,6 +200,9 @@ class ExtendedKalmanFilter():
         #cacualting the innovation to update the innovationand innovation covariance here jacobain is identity so the equations simplify a lot 
         innovation = measurement_pose - self.state
         innovation_covariance = self.covariance+ measurement_covariance
+
+        #innovation[2] = (innovation[2] + np.pi) % (2*np.pi) - np.pi
+
             
         #calcualtin gthe Kalman Gain
         Kalman_gain = np.dot(self.covariance, np.linalg.inv( innovation_covariance))
@@ -302,7 +307,22 @@ def pred_update_callback(data):
     global ekf
 
     #getting updating ekf state as the output predicted by odometry
-    ekf.state = np.asarray([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z])  
+    ekf.state = np.asarray([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z]) 
+    #ekf.state[0]=data.pose.pose.position.x 
+    #ekf.state[1]=data.pose.pose.position.y
+
+    quaternion = (
+    data.pose.pose.orientation.x,
+    data.pose.pose.orientation.y,
+    data.pose.pose.orientation.z,
+    data.pose.pose.orientation.w)
+
+    #getting euler angles from quaternion
+    (roll, pitch, yaw) = euler_from_quaternion(quaternion)
+
+    #updatin the orientation
+    #yaw=(yaw + np.pi)%2*np.pi-np.pi
+    ekf.state[2]=yaw 
 
     #defining the new 3x3 zeros matrix and updating it wiht relevant values from the 1x36 covariance array from odometry_node
     pred_covariance = np.zeros((3,3))
@@ -332,7 +352,7 @@ def correction_from_imu_callback(msg):
     global ekf
 
     #fixing a constant variance for IMU_orientation
-    variance_imu = 5*np.pi/180
+    variance_imu = 0.5*np.pi/180
 
     #calling the correction function to correct the yaw angle of the robot
     ekf.imu_correction(msg.angular.z,variance_imu)
@@ -379,7 +399,7 @@ def main():
     rospy.init_node('ekf_node')
 
     #initialising the rate variable to an appropriate rate 
-    rate = rospy.Rate(10) 
+    rate = rospy.Rate(5) 
   
     #intialising some parameters realted to the ekf 
     ekf.measurement_distance_stddev = rospy.get_param("measurement_distance_stddev")
@@ -399,7 +419,7 @@ def main():
     rospy.Subscriber('/odom', PoseWithCovarianceStamped, pred_update_callback) # getting the odometry prediction from odom_node 
     #commented out as it is not being tested now 
     #rospy.Subscriber('feature_from_lidar', features, correction_from_lidar_callback)
-    rospy.Subscriber('/pozyx_position',Twist,correction_from_imu_callback) # getting the orientation asscoiated with the imu of pozyx 
+    #rospy.Subscriber('/pozyx_position',Twist,correction_from_imu_callback) # getting the orientation asscoiated with the imu of pozyx 
     rospy.Subscriber('/aprtag',PoseWithCovarianceStamped,correction_from_april_tag_callback) # getting the predicted position and covariance from apriltag based detection module
 
     while not rospy.is_shutdown():
@@ -433,15 +453,15 @@ def main():
         ekf_message.pose.pose.orientation.z = ekf_quat[2]
         ekf_message.pose.pose.orientation.w = ekf_quat[3]
 
-        ekf_message.pose.covariance = [covariance[0,0],covariance[0,1],0,0,0,covariance[0,2],\
-                                                            covariance[1,0],covariance[1,1],0,0,0,covariance[1,2],\
+        ekf_message.pose.covariance = [covariance[0][0],covariance[0][1],0,0,0,covariance[0][2],\
+                                                            covariance[1][0],covariance[1][1],0,0,0,covariance[1][2],\
                                                             0,0,0,0,0,0,\
                                                             0,0,0,0,0,0,\
                                                             0,0,0,0,0,0,\
-                                                            covariance[2,0],covariance[2,1],0,0,0,covariance[2,2]]
+                                                            covariance[2][0],covariance[2][1],0,0,0,covariance[2][2]]
 
         #broadcasting the transform created with odom as the base frame
-        ekf_broadcaster.sendTransform((X, Y, 0),ekf_quat,current_time,"/ekf_base_link","/odom") 
+        ekf_broadcaster.sendTransform((X*1e-3, Y*1e-3, 0),ekf_quat,current_time,"/ekf_base_link","/world") 
         
         # publish the message
         ekf_pub.publish(ekf_message)

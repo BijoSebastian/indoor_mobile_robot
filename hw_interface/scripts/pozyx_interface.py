@@ -55,6 +55,8 @@ def waitForArduino():
   print(msg)
   
   return
+
+#===========================  
 # Function for gracefull shutdown
 def turn_off():
   #Function for safe shutdown 
@@ -91,10 +93,8 @@ def main():
     pos.linear.x = position[0]
     pos.linear.y = position[1]
     pos.angular.z = position[2]
-    #if pos.linear.x < 1e5 or pos.linear.y < 1e5:
-    #pos.angular.z = position[3]
-    #pos.angular.y = position[4]
-    #pos.angular.x = position[5]
+
+    #Filtering large values if they come up 
     if pos.linear.x < 1e5 and pos.linear.y < 1e5:
       pub_position.publish(pos)
       rate.sleep()
